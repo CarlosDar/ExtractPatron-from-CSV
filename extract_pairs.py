@@ -155,4 +155,7 @@ if __name__ == '__main__':
     except Exception as e:
         # Si hay algún error general, lo mostramos y terminamos el programa
         print(f"Error general: {str(e)}")
-        sys.exit(1) 
+        sys.exit(1)
+
+# El archivo CSV generado tiene el formato: Alias,"Item Name"
+# donde "Item Name" está entre comillas dobles 
