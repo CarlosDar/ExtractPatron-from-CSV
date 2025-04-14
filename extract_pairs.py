@@ -92,24 +92,16 @@ def extract_pairs(input_file, output_file, chunk_size=1000000):
                     
                     # Creamos el archivo CSV de salida
                     with open(output_file, 'w', encoding='utf-8', newline='') as out_file:
-                        # Creamos el escritor CSV
-                        csv_writer = csv.writer(out_file)
                         # Escribimos la cabecera
-                        csv_writer.writerow(['Item Name', 'Alias'])
+                        out_file.write('Alias,"Item Name"\n')
                         
                         # Procesamos cada par encontrado
                         for i, pair in enumerate(pairs, 1):
                             # Extraemos el Item Name y el Alias del par
                             item_name = pair.group(1)
                             alias = pair.group(2)
-                            # Escribimos la fila en el CSV
-                            csv_writer.writerow([item_name, alias])
-                            
-                            # Mostramos los primeros 5 pares en pantalla
-                            if i <= 5:
-                                print(f"\nPar #{i}:")
-                                print(f"Item Name: {item_name}")
-                                print(f"Alias: {alias}")
+                            # Escribimos la fila directamente
+                            out_file.write(f'{alias},"{item_name}"\n')
                         
                         print(f'\nSe exportaron exitosamente {len(pairs)} pares al archivo {output_file}')
                         return True
