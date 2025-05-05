@@ -31,18 +31,21 @@ def process_chunk(chunk, encoding):
         # Lista para almacenar todos los pares encontrados
         all_pairs = []
         
-        # Probamos cada patrón de búsqueda
+        # Buscamos en el contenido completo
         for pattern in patterns:
             try:
                 # Buscamos todas las coincidencias del patrón en el contenido
-                pairs = re.finditer(pattern, content)
+                matches = re.finditer(pattern, content)
                 # Convertimos el resultado a lista y lo añadimos a all_pairs
-                all_pairs.extend(list(pairs))
+                for match in matches:
+                    all_pairs.append(match)
             except Exception as e:
-                # Si hay un error con un patrón, lo mostramos y continuamos con el siguiente
                 print(f"Error al procesar el patrón {pattern}: {str(e)}")
                 continue
             
+        # Ordenamos los pares por su posición en el archivo original
+        all_pairs.sort(key=lambda x: x.start())
+        
         return all_pairs
     except UnicodeDecodeError:
         # Si hay error al decodificar, devolvemos lista vacía
@@ -52,14 +55,14 @@ def process_chunk(chunk, encoding):
         print(f"Error al decodificar el chunk: {str(e)}")
         return []
 
-def extract_pairs(input_file, output_file, chunk_size=1000000):
+def extract_pairs(input_file, output_file, split_at_alias=None):
     """
     Extrae los pares de Item Name y Alias de un archivo y los guarda en un CSV.
     
     Args:
         input_file: Ruta del archivo de entrada
         output_file: Ruta del archivo de salida CSV
-        chunk_size: Tamaño de los fragmentos en que se divide el archivo (por defecto 1MB)
+        split_at_alias: Alias a partir del cual se creará un nuevo archivo CSV
     """
     print(f"\nIniciando procesamiento del archivo: {input_file}")
     print(f"Tamaño del archivo: {os.path.getsize(input_file)} bytes")
@@ -92,18 +95,32 @@ def extract_pairs(input_file, output_file, chunk_size=1000000):
                     
                     # Creamos el archivo CSV de salida
                     with open(output_file, 'w', encoding='utf-8', newline='') as out_file:
-                        # Escribimos la cabecera
-                        out_file.write('Alias,"Item Name"\n')
-                        
                         # Procesamos cada par encontrado
                         for i, pair in enumerate(pairs, 1):
                             # Extraemos el Item Name y el Alias del par
                             item_name = pair.group(1)
                             alias = pair.group(2)
-                            # Escribimos la fila directamente
+                            
+                            # Si encontramos el Alias de división, creamos un nuevo archivo
+                            if split_at_alias and alias == split_at_alias:
+                                # Cerramos el archivo actual
+                                out_file.close()
+                                # Creamos el nuevo archivo
+                                base_name = os.path.splitext(output_file)[0]
+                                new_output_file = f"{base_name}_part2.csv"
+                                out_file = open(new_output_file, 'w', encoding='utf-8', newline='')
+                                print(f"\nCreando nuevo archivo: {new_output_file}")
+                            
+                            # Escribimos la fila
                             out_file.write(f'{alias},"{item_name}"\n')
+                            
+                            # Mostramos los primeros 5 pares en pantalla
+                            if i <= 5:
+                                print(f"\nPar #{i}:")
+                                print(f"Item Name: {item_name}")
+                                print(f"Alias: {alias}")
                         
-                        print(f'\nSe exportaron exitosamente {len(pairs)} pares al archivo {output_file}')
+                        print(f'\nSe exportaron exitosamente los pares a los archivos CSV')
                         return True
                 else:
                     print("\nNo se encontraron pares en el archivo")
@@ -142,7 +159,7 @@ def show_file_sample(input_file, sample_size=1000):
 if __name__ == '__main__':
     try:
         # Definimos los archivos de entrada y salida
-        input_file = 'pru.txt'
+        input_file = 'prucsv.csv'
         output_file = 'item_alias_pairs.csv'
         
         # Verificamos que el archivo de entrada existe
@@ -150,8 +167,14 @@ if __name__ == '__main__':
             print(f"Error: El archivo {input_file} no existe")
             sys.exit(1)
             
+        # Pedimos al usuario si quiere dividir el archivo
+        split_choice = input("¿Desea dividir el archivo CSV? (s/n): ").lower()
+        split_at_alias = None
+        if split_choice == 's':
+            split_at_alias = input("Introduzca el Alias a partir del cual crear un nuevo archivo: ")
+            
         # Ejecutamos la función principal
-        extract_pairs(input_file, output_file)
+        extract_pairs(input_file, output_file, split_at_alias)
     except Exception as e:
         # Si hay algún error general, lo mostramos y terminamos el programa
         print(f"Error general: {str(e)}")
